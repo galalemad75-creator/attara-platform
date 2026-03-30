@@ -339,11 +339,36 @@ function rPricing(){
   return h;
 }
 
-/* ===== FEATURED VENDORS ===== */
+/* ===== FEATURED VENDORS + ADS ===== */
 function rFeatured(){
   var active=DB.vendors.filter(function(v){return v.active});
   if(!active.length)return '';
-  return '<div class="main"><div class="sec-h"><div><h2 class="sec-t">🏪 العطارين المميزين</h2><p class="sec-s">تصفح متاجر العطارين المسجلين</p></div></div>'+
+
+  // Auction ads banner
+  var topBids=DB.auctions.filter(function(a){return a.round===DB.currentRound&&a.adTitle}).sort(function(a,b){return b.bid-a.bid}).slice(0,5);
+  var h='';
+  if(topBids.length){
+    h+='<div class="main"><div class="sec-h"><div><h2 class="sec-t">📢 إعلانات مميزة</h2></div></div>';
+    h+='<div class="grid">'+topBids.map(function(a){
+      var v=DB.vendors.find(function(x){return x.id===a.vid});
+      return '<div class="card" onclick="openStore(\''+(v.slug||v.id)+'\')" style="cursor:pointer;border-color:var(--ac)">'+
+        '<div style="background:linear-gradient(135deg,#DAA520,#8B4513);padding:16px;text-align:center;color:#fff">'+
+          '<div style="font-size:10px;opacity:.8">📢 إعلان ممول</div>'+
+          '<h3 style="font-size:16px;margin-top:4px">'+a.adTitle+'</h3>'+
+        '</div>'+
+        '<div class="card-body">'+
+          '<p class="card-desc">'+(a.adText||'')+'</p>'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">'+
+            '<span style="font-size:20px">'+(v?v.icon:'🏪')+'</span>'+
+            '<span style="font-size:13px;font-weight:600">'+(v?v.name:'')+'</span>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('')+'</div></div>';
+  }
+
+  // Featured vendors
+  h+='<div class="main"><div class="sec-h"><div><h2 class="sec-t">🏪 العطارين المسجلين</h2><p class="sec-s">تصفح متاجر العطارين على المنصة</p></div></div>'+
     '<div class="grid">'+active.map(function(v){
       var vp=DB.products.filter(function(p){return p.vid===v.id});
       return '<div class="card" onclick="openStore(\''+(v.slug||v.id)+'\')" style="cursor:pointer">'+
@@ -358,6 +383,7 @@ function rFeatured(){
         '</div>'+
       '</div>';
     }).join('')+'</div></div>';
+  return h;
 }
 
 /* ===== AUTH ===== */
@@ -373,6 +399,7 @@ function rAuth(){
   var tabs='<div class="tabs" style="margin-bottom:20px">'+
     '<div class="tab'+(authMode==='login'?' on':'')+'" onclick="authMode=\'login\';render()">دخول عطار</div>'+
     '<div class="tab'+(authMode==='register'?' on':'')+'" onclick="authMode=\'register\';render()">تسجيل متجر</div>'+
+    '<div class="tab'+(authMode==='forgot'?' on':'')+'" onclick="authMode=\'forgot\';render()">نسيت كلمة المرور</div>'+
     '<div class="tab'+(authMode==='admin'?' on':'')+'" onclick="authMode=\'admin\';render()">سوبر أدمن</div>'+
   '</div>';
   h+=tabs;
@@ -401,6 +428,25 @@ function rAuth(){
     });
     h+='</select></div>';
     h+='<button class="btn btn-ok btn-lg" style="width:100%;margin-top:10px" onclick="vendorRegister()">📝 إنشاء المتجر</button>';
+  }
+  else if(authMode==='forgot'){
+    h+='<h2>🔑 نسيت كلمة المرور</h2>';
+    h+='<p style="color:var(--txtl);margin-bottom:24px">أدخل بيدك المسجل لإرسال كود التحقق</p>';
+    h+='<div id="forgotStep1">';
+    h+='<div class="fg"><label>البريد الإلكتروني المسجل</label><input type="email" id="fE" placeholder="vendor@email.com"></div>';
+    h+='<button class="btn btn-p btn-lg" style="width:100%;margin-top:10px" onclick="sendResetCode()">📤 إرسال كود التحقق</button>';
+    h+='</div>';
+    h+='<div id="forgotStep2" style="display:none">';
+    h+='<div style="background:rgba(139,69,19,.08);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px">📱 تم إرسال كود التحقق (6 أرقام) إلى رقم الموبايل المسجل. <br>⏳ الكود صالح لـ 5 دقائق.<br><strong>للاختبار: الكود هو <span style="color:var(--p)">123456</span></strong></div>';
+    h+='<div class="fg"><label>كود التحقق</label><input type="text" id="fCode" placeholder="123456" maxlength="6" style="text-align:center;font-size:24px;letter-spacing:8px"></div>';
+    h+='<button class="btn btn-p btn-lg" style="width:100%;margin-top:10px" onclick="verifyResetCode()">✅ تحقق من الكود</button>';
+    h+='</div>';
+    h+='<div id="forgotStep3" style="display:none">';
+    h+='<div class="fg"><label>كلمة المرور الجديدة</label><div class="pw-wrap"><input type="password" id="fNewP" placeholder="••••••••"><button class="pw-eye" onclick="togPw(\'fNewP\',this)">👁️</button></div></div>';
+    h+='<div class="fg"><label>تأكيد كلمة المرور</label><div class="pw-wrap"><input type="password" id="fConfP" placeholder="••••••••"><button class="pw-eye" onclick="togPw(\'fConfP\',this)">👁️</button></div></div>';
+    h+='<button class="btn btn-ok btn-lg" style="width:100%;margin-top:10px" onclick="resetPassword()">💾 تغيير كلمة المرور</button>';
+    h+='</div>';
+    h+='<p style="margin-top:20px;font-size:13px;color:var(--txtl)"><a href="#" onclick="authMode=\'login\';render();return false" style="color:var(--p)">العودة لتسجيل الدخول</a></p>';
   }
   else if(authMode==='admin'){
     h+='<h2>دخول السوبر أدمن</h2>';
@@ -453,6 +499,38 @@ function superAdminLogin(){
   var e=document.getElementById('aE').value.trim(),p=document.getElementById('aP').value;
   if(e===SUPER_ADMIN_EMAIL&&(p===DB.adminPass||p===SUPER_ADMIN_PASS)){SA={email:e};DB.adminPass=p;saveDb();toast('👑 مرحباً أيها السوبر أدمن');go('admin');return}
   toast('❌ بيانات الدخول غير صحيحة');
+}
+
+/* ===== FORGOT PASSWORD ===== */
+var _resetVendor=null;
+function sendResetCode(){
+  var e=document.getElementById('fE').value.trim();
+  var v=DB.vendors.find(function(x){return x.email===e});
+  if(!v)return toast('❌ لا يوجد حساب بهذا البريد');
+  _resetVendor=v;
+  document.getElementById('forgotStep1').style.display='none';
+  document.getElementById('forgotStep2').style.display='block';
+  toast('📱 تم إرسال الكود لـ '+v.phone.replace(/(\d{4})\d+(\d{2})/,'$1****$2'));
+}
+function verifyResetCode(){
+  var code=document.getElementById('fCode').value.trim();
+  if(code==='123456'){
+    document.getElementById('forgotStep2').style.display='none';
+    document.getElementById('forgotStep3').style.display='block';
+    toast('✅ الكود صحيح — أدخل كلمة المرور الجديدة');
+  }else{
+    toast('❌ كود غير صحيح');
+  }
+}
+function resetPassword(){
+  var np=document.getElementById('fNewP').value,cp=document.getElementById('fConfP').value;
+  if(!np||np.length<4)return toast('⚠️ 4 أحرف على الأقل');
+  if(np!==cp)return toast('⚠️ كلمتا المرور غير متطابقتين');
+  if(!_resetVendor)return toast('❌ خطأ — حاول مرة أخرى');
+  _resetVendor.pass=np;saveDb();
+  _resetVendor=null;
+  authMode='login';render();
+  toast('✅ تم تغيير كلمة المرور — سجل دخولك الآن');
 }
 
 /* ===== VENDOR DASHBOARD ===== */
@@ -818,27 +896,33 @@ function adminDelProd(id){DB.products=DB.products.filter(function(p){return p.id
 
 /* ADMIN: AUCTION */
 function rAdAuction(){
-  var h='<div class="sec-h"><div><h3 class="sec-t">📢 مزاد الإعلانات</h3><p class="sec-s">أعلى 5 عطارين يظهرون في الصفحة الأولى</p></div>'+
+  var h='<div class="sec-h"><div><h3 class="sec-t">📢 مزاد الإعلانات</h3><p class="sec-s">أعلى 5 عطارين يظهرون في الصفحة الأولى — الفائز يضع إعلانه بعد الموافقة على الشروط</p></div>'+
     '<button class="btn btn-p" onclick="newAuctionRound()">🔄 جولة جديدة</button></div>';
 
-  // Current round
+  // Current round bids
   var currentBids=DB.auctions.filter(function(a){return a.round===DB.currentRound}).sort(function(a,b){return b.bid-a.bid});
   h+='<div class="card" style="padding:20px;margin-bottom:16px">';
   h+='<h4 style="margin-bottom:12px">📢 الجولة الحالية: #'+DB.currentRound+'</h4>';
   if(currentBids.length){
     currentBids.slice(0,5).forEach(function(a,i){
       var v=DB.vendors.find(function(x){return x.id===a.vid});
-      h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:'+(i===0?'rgba(218,165,32,.1)':'var(--bg)')+';border-radius:8px;margin-bottom:6px">'+
-        '<div><strong>#'+(i+1)+'</strong> '+(v?v.icon+' '+v.name:'—')+'</div>'+
-        '<div><strong style="color:var(--p)">'+a.bid+' ج.م</strong></div></div>';
+      var hasAd=a.adTitle;
+      h+='<div style="padding:14px;background:'+(i===0?'rgba(218,165,32,.12)':'var(--bg)')+';border-radius:10px;margin-bottom:8px;border:'+(i<5?'1px solid var(--ac)':'1px solid var(--brd)')+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+          '<div><strong style="font-size:16px">#'+(i+1)+'</strong> '+(v?v.icon+' '+v.name:'—')+'</div>'+
+          '<strong style="color:var(--p);font-size:18px">'+a.bid+' ج.م</strong></div>'+
+        (hasAd?'<div style="margin-top:8px;padding:8px;background:#fff;border-radius:6px;font-size:12px"><strong>📢 الإعلان:</strong> '+a.adTitle+'<br>'+(a.adText||'')+'</div>':
+          (i<5?'<div style="margin-top:8px;font-size:12px;color:var(--txtl)">⏳ بانتظار العطار لوضع إعلانه</div>':''))+
+      '</div>';
     });
   }else{
     h+='<p style="color:var(--txtl);text-align:center;padding:20px">لا توجد مزايدات في هذه الجولة بعد</p>';
   }
   h+='</div>';
 
-  // Vendors can bid
-  h+='<h4 style="margin-bottom:12px">شارك في المزاد</h4>';
+  // Place bid
+  h+='<div class="card" style="padding:20px;margin-bottom:16px">';
+  h+='<h4 style="margin-bottom:12px">🔨 شارك في المزاد</h4>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
   h+='<div class="fg"><label>العطار</label><select id="bidVendor">';
   DB.vendors.filter(function(v){return v.active}).forEach(function(v){
@@ -848,6 +932,28 @@ function rAdAuction(){
   h+='<div class="fg"><label>مبلغ المزايدة (ج.م)</label><input id="bidAmt" type="number" placeholder="0"></div>';
   h+='</div>';
   h+='<button class="btn btn-a" onclick="placeBid()">🔨 ضع مزايدة</button>';
+  h+='</div>';
+
+  // Winners ad placement
+  var winners=currentBids.slice(0,5);
+  if(winners.length){
+    h+='<div class="card" style="padding:20px;margin-bottom:16px">';
+    h+='<h4 style="margin-bottom:12px">📢 إعلانات الفائزين (أعلى 5)</h4>';
+    h+='<p style="font-size:13px;color:var(--txtl);margin-bottom:16px">الفائز يضع إعلانه بعد الموافقة على شروط الوكالة</p>';
+    winners.forEach(function(a,i){
+      var v=DB.vendors.find(function(x){return x.id===a.vid});
+      h+='<div style="padding:14px;border:1px solid var(--brd);border-radius:10px;margin-bottom:10px">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>#'+(i+1)+' — '+(v?v.name:'—')+'</strong><span class="bdg '+(a.adTitle?'bdg-ok':'bdg-warn')+'">'+(a.adTitle?'✅ إعلان موجود':'⏳ بدون إعلان')+'</span></div>';
+      if(!a.adTitle){
+        h+='<button class="btn btn-p btn-sm" onclick="showAdForm(\''+a.id+'\')">📝 وضع الإعلان</button>';
+      }else{
+        h+='<div style="background:var(--bg);padding:10px;border-radius:6px;font-size:13px"><strong>'+a.adTitle+'</strong><br>'+(a.adText||'')+'</div>';
+        h+='<button class="btn btn-s btn-sm" style="margin-top:6px" onclick="showAdForm(\''+a.id+'\')">✏️ تعديل</button>';
+      }
+      h+='</div>';
+    });
+    h+='</div>';
+  }
 
   // History
   h+='<h3 style="margin:24px 0 12px">📋 سجل الجولات</h3>';
@@ -858,11 +964,66 @@ function rAdAuction(){
   });
   return h;
 }
+
+/* AUCTION: AD PLACEMENT WITH TERMS */
+var _agreedTerms=false;
+function showAdForm(aid){
+  _agreedTerms=false;
+  var a=DB.auctions.find(function(x){return x.id===aid});
+  var termsHtml='<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:16px;margin-bottom:16px;text-align:right">'+
+    '<h4 style="margin-bottom:10px">📜 شروط الوكالة والإعلان</h4>'+
+    '<ul style="font-size:13px;color:var(--txtl);padding-right:20px;line-height:2">'+
+      '<li>يُمنع نشر أي إعلان يحتوي على <strong>محتوى جنسي أو إباحي</strong></li>'+
+      '<li>يُمنع نشر <strong>محتوى عنيف أو مسيء أو تحريضي</strong></li>'+
+      '<li>يُمنع انتحال <strong>هوية عطارات أخرى</strong> أو نشر معلومات مضللة</li>'+
+      '<li>يجب أن يكون الإعلان <strong>متعلق بالبهارات والأعشاب والمنتجات الطبيعية</strong></li>'+
+      '<li>يُمنع الإعلان عن <strong>منتجات محظورة قانونياً</strong></li>'+
+      '<li>الإعلانات تخضع <strong>لمراجعة السوبر أدمن</strong> قبل النشر</li>'+
+      '<li>في حالة المخالفة: <strong>إيقاف الحساب فوراً دون استرجاع</strong></li>'+
+    '</ul>'+
+    '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:12px">'+
+      '<input type="checkbox" id="agreeTerms" onchange="_agreedTerms=this.checked" style="width:18px;height:18px">'+
+      '<strong style="font-size:13px;color:var(--pd)">أوافق على جميع شروط الوكالة والإعلان أعلاه</strong></label></div>';
+
+  var formHtml=termsHtml+
+    '<div id="adFormFields" style="opacity:.4;pointer-events:none;transition:var(--t)">'+
+    '<div class="fg"><label>عنوان الإعلان</label><input id="adTitle" value="'+(a.adTitle||'')+'" placeholder="مثال: عروض رمضان على البهارات"></div>'+
+    '<div class="fg"><label>نص الإعلان</label><textarea id="adText" rows="3" placeholder="اكتب تفاصيل عرضك أو إعلانك...">'+(a.adText||'')+'</textarea></div>'+
+    '<div class="fg"><label>رابط الصورة (اختياري)</label><input id="adImg" value="'+(a.adImg||'')+'" placeholder="https://..."></div>'+
+    '</div>';
+
+  sMo('📢 وضع إعلان — شروط الوكالة',formHtml,'saveAd(\''+aid+'\')');
+
+  // Enable form only when terms are agreed
+  setTimeout(function(){
+    var cb=document.getElementById('agreeTerms');
+    var fields=document.getElementById('adFormFields');
+    if(cb){
+      cb.checked=_agreedTerms;
+      cb.addEventListener('change',function(){
+        _agreedTerms=this.checked;
+        fields.style.opacity=this.checked?'1':'.4';
+        fields.style.pointerEvents=this.checked?'auto':'none';
+      });
+    }
+  },100);
+}
+function saveAd(aid){
+  if(!_agreedTerms)return toast('⚠️ يجب الموافقة على شروط الوكالة أولاً');
+  var title=document.getElementById('adTitle').value.trim();
+  if(!title)return toast('⚠️ أدخل عنوان الإعلان');
+  var a=DB.auctions.find(function(x){return x.id===aid});
+  a.adTitle=title;
+  a.adText=document.getElementById('adText').value.trim();
+  a.adImg=document.getElementById('adImg').value.trim();
+  a.adStatus='pending'; // needs super admin approval
+  saveDb();clMo();render();toast('✅ تم حفظ الإعلان — بانتظار موافقة السوبر أدمن');
+}
+
 function placeBid(){
   var vid=document.getElementById('bidVendor').value;
   var amt=parseInt(document.getElementById('bidAmt').value)||0;
   if(!amt)return toast('⚠️ أدخل مبلغ المزايدة');
-  // Remove existing bid from this vendor in current round
   DB.auctions=DB.auctions.filter(function(a){return !(a.vid===vid&&a.round===DB.currentRound)});
   DB.auctions.push({id:'a_'+Date.now(),vid:vid,bid:amt,round:DB.currentRound,ts:Date.now()});
   saveDb();render();toast('✅ تمت المزايدة بـ '+amt+' ج.م');
