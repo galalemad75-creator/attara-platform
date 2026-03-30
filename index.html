@@ -88,6 +88,8 @@ a{color:inherit;text-decoration:none}
 .fg input:focus,.fg textarea:focus,.fg select:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(139,69,19,.1)}
 .fg textarea{min-height:80px;resize:vertical}
 .up-area{border:2px dashed var(--brd);border-radius:var(--rs);padding:24px;text-align:center;cursor:pointer;transition:var(--t)}.up-area:hover{border-color:var(--p)}.up-area p{color:var(--txtl);font-size:13px}
+.pw-wrap{position:relative}.pw-wrap input{padding-left:40px!important}.pw-eye{position:absolute;left:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;opacity:.5;transition:var(--t)}.pw-eye:hover{opacity:1}
+.store-slug-preview{font-size:12px;color:var(--txtl);margin-top:4px;direction:ltr;text-align:right}.store-slug-preview code{background:var(--bg);padding:2px 8px;border-radius:4px;color:var(--p)}
 
 /* AUTH BOX */
 .auth-box{max-width:450px;margin:60px auto;background:var(--card);border-radius:var(--r);padding:40px;box-shadow:var(--shl);text-align:center}
@@ -276,7 +278,7 @@ function rSocial(){
   bar.innerHTML='';
   var sl=DB.socialLinks||SOCIAL_LINKS;
   if(sl.whatsapp)bar.innerHTML+='<a class="social-btn social-wa" href="'+sl.whatsapp+'" target="_blank" title="واتساب">💬</a>';
-  if(sl.facebook)bar.innerHTML+='<a class="social-btn social-fb" href="'+sl.facebook+'" target="_blank" title="فيسبوك">📘</a>';
+  if(sl.facebook)bar.innerHTML+='<a class="social-btn social-fb" href="'+sl.facebook+'" target="_blank" title="فيسبوك">🌐</a>';
 }
 
 /* ===== HERO ===== */
@@ -344,7 +346,7 @@ function rFeatured(){
   return '<div class="main"><div class="sec-h"><div><h2 class="sec-t">🏪 العطارين المميزين</h2><p class="sec-s">تصفح متاجر العطارين المسجلين</p></div></div>'+
     '<div class="grid">'+active.map(function(v){
       var vp=DB.products.filter(function(p){return p.vid===v.id});
-      return '<div class="card" onclick="openStore(\''+v.id+'\')" style="cursor:pointer">'+
+      return '<div class="card" onclick="openStore(\''+(v.slug||v.id)+'\')" style="cursor:pointer">'+
         '<div style="height:100px;background:linear-gradient(135deg,var(--pd),var(--pl));display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff">'+v.icon+'</div>'+
         '<div class="card-body">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
@@ -379,16 +381,17 @@ function rAuth(){
     h+='<h2>دخول العطار</h2>';
     h+='<p style="color:var(--txtl);margin-bottom:24px">ادخل بريدك وكلمة المرور</p>';
     h+='<div class="fg"><label>البريد الإلكتروني</label><input type="email" id="vE" placeholder="vendor@email.com"></div>';
-    h+='<div class="fg"><label>كلمة المرور</label><input type="password" id="vP" placeholder="••••••••"></div>';
+    h+='<div class="fg"><label>كلمة المرور</label><div class="pw-wrap"><input type="password" id="vP" placeholder="••••••••"><button class="pw-eye" onclick="togPw(\'vP\',this)">👁️</button></div></div>';
     h+='<button class="btn btn-p btn-lg" style="width:100%;margin-top:10px" onclick="vendorLogin()">🔑 تسجيل الدخول</button>';
   }
   else if(authMode==='register'){
     h+='<h2>سجل متجرك</h2>';
     h+='<p style="color:var(--txtl);margin-bottom:24px">أنشئ متجرك وابدأ البيع</p>';
     h+='<div class="fg"><label>اسم المتجر</label><input type="text" id="rN" placeholder="عطارة الفلاني"></div>';
+    h+='<div class="fg"><label>اسم المتجر في الرابط (بالإنجليزي)</label><input type="text" id="rSlug" placeholder="al-falani" style="direction:ltr;text-align:right" oninput="updateSlugPreview()"><div class="store-slug-preview" id="slugPreview">مثال: attara.io/<code>al-falani</code></div></div>';
     h+='<div class="fg"><label>البريد الإلكتروني</label><input type="email" id="rE" placeholder="vendor@email.com"></div>';
     h+='<div class="fg"><label>رقم الموبايل</label><input type="tel" id="rPh" placeholder="01xxxxxxxxx"></div>';
-    h+='<div class="fg"><label>كلمة المرور</label><input type="password" id="rPa" placeholder="••••••••"></div>';
+    h+='<div class="fg"><label>كلمة المرور</label><div class="pw-wrap"><input type="password" id="rPa" placeholder="••••••••"><button class="pw-eye" onclick="togPw(\'rPa\',this)">👁️</button></div></div>';
     h+='<div class="fg"><label>وصف المتجر</label><textarea id="rD" rows="2" placeholder="وصف مختصر عن متجرك..."></textarea></div>';
     h+='<div class="fg"><label>أيقونة المتجر</label><input id="rI" placeholder="🏪" style="text-align:center;font-size:24px" maxlength="4"></div>';
     h+='<div class="fg"><label>الباقة</label><select id="rPlan">';
@@ -403,9 +406,9 @@ function rAuth(){
     h+='<h2>دخول السوبر أدمن</h2>';
     h+='<p style="color:var(--txtl);margin-bottom:24px">لوحة التحكم الشاملة</p>';
     h+='<div class="fg"><label>البريد الإلكتروني</label><input type="email" id="aE" placeholder="admin@attara.com"></div>';
-    h+='<div class="fg"><label>كلمة المرور</label><input type="password" id="aP" placeholder="••••••••"></div>';
+    h+='<div class="fg"><label>كلمة المرور</label><div class="pw-wrap"><input type="password" id="aP" placeholder="••••••••"><button class="pw-eye" onclick="togPw(\'aP\',this)">👁️</button></div></div>';
     h+='<button class="btn btn-a btn-lg" style="width:100%;margin-top:10px" onclick="superAdminLogin()">👑 دخول السوبر أدمن</button>';
-    h+='<p style="margin-top:16px;font-size:11px;color:var(--txtm)">'+SUPER_ADMIN_EMAIL+' / '+DB.adminPass+'</p>';
+    h+='<p style="margin-top:16px;font-size:11px;color:var(--txtm)">'+SUPER_ADMIN_EMAIL+' / '+SUPER_ADMIN_PASS+'</p>';
   }
   h+='</div></div>';
   return h;
@@ -423,10 +426,13 @@ function vendorRegister(){
   var n=document.getElementById('rN').value.trim(),e=document.getElementById('rE').value.trim(),
       ph=document.getElementById('rPh').value.trim(),pa=document.getElementById('rPa').value,
       d=document.getElementById('rD').value.trim(),ic=document.getElementById('rI').value.trim()||'🏪',
-      plan=document.getElementById('rPlan').value;
+      plan=document.getElementById('rPlan').value,
+      slug=document.getElementById('rSlug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'').replace(/--+/g,'-');
   if(!n||!e||!ph||!pa)return toast('⚠️ أكمل جميع الحقول');
+  if(!slug)return toast('⚠️ أدخل اسم المتجر في الرابط');
   if(DB.vendors.find(function(x){return x.email===e}))return toast('⚠️ البريد مسجل مسبقاً');
-  var v={id:'v_'+Date.now(),name:n,email:e,phone:ph,pass:pa,desc:d,icon:ic,
+  if(DB.vendors.find(function(x){return x.slug===slug}))return toast('⚠️ اسم الرابط مستخدم من عطار آخر');
+  var v={id:'v_'+Date.now(),name:n,email:e,phone:ph,pass:pa,desc:d,icon:ic,slug:slug,
     plan:plan,active:false,createdAt:new Date().toLocaleString('ar-EG'),ts:Date.now()};
   DB.vendors.push(v);
   // Create subscription record
@@ -445,7 +451,7 @@ function vendorRegister(){
 }
 function superAdminLogin(){
   var e=document.getElementById('aE').value.trim(),p=document.getElementById('aP').value;
-  if(e===SUPER_ADMIN_EMAIL&&p===DB.adminPass){SA={email:e};toast('👑 مرحباً أيها السوبر أدمن');go('admin');return}
+  if(e===SUPER_ADMIN_EMAIL&&(p===DB.adminPass||p===SUPER_ADMIN_PASS)){SA={email:e};DB.adminPass=p;saveDb();toast('👑 مرحباً أيها السوبر أدمن');go('admin');return}
   toast('❌ بيانات الدخول غير صحيحة');
 }
 
@@ -636,19 +642,27 @@ function upgradeTo(plan){
 
 /* VENDOR: PUBLIC STORE */
 function rVStore(){
-  var link=location.origin+location.pathname+'#store-'+V.id;
+  var slug=V.slug||V.id;
+  var link=location.origin+location.pathname+'#store-'+slug;
   return '<div class="sec-h"><div><h3 class="sec-t">🔗 رابط متجري</h3></div></div>'+
     '<div class="card" style="padding:24px;text-align:center">'+
+      '<div style="font-size:32px;margin-bottom:8px">'+V.icon+'</div>'+
+      '<h3 style="margin-bottom:4px">'+V.name+'</h3>'+
+      '<p style="color:var(--txtl);font-size:13px;margin-bottom:16px">وكيل داخل عطارة المغربلين</p>'+
       '<p style="margin-bottom:12px">شارك رابط متجرك مع عملائك:</p>'+
       '<div style="background:var(--bg);padding:12px;border-radius:8px;font-size:14px;word-break:break-all;direction:ltr">'+link+'</div>'+
       '<button class="btn btn-p" style="margin-top:12px" onclick="copyText(\''+link+'\')">📋 نسخ الرابط</button>'+
-      '<br><button class="btn btn-s" style="margin-top:8px" onclick="openStore(\''+V.id+'\')">👁️ معاينة المتج</button>'+
+      '<br><button class="btn btn-s" style="margin-top:8px" onclick="openStore(\''+slug+'\')">👁️ معاينة المتج</button>'+
     '</div>';
 }
 
 /* ===== PUBLIC STORE ===== */
 var storeViewId=null;
-function openStore(vid){storeViewId=vid;cv='store';render();window.scrollTo(0,0)}
+function openStore(idOrSlug){
+  var v=DB.vendors.find(function(x){return x.id===idOrSlug||x.slug===idOrSlug});
+  if(v){storeViewId=v.id;cv='store';render();window.scrollTo(0,0)}
+  else toast('❌ المتجر غير موجود');
+}
 function rPublicStore(){
   var v=DB.vendors.find(function(x){return x.id===storeViewId});
   if(!v)return '<div class="main"><div class="empty"><div class="empty-ic">❌</div><h4>المتجر غير موجود</h4></div></div>';
@@ -912,6 +926,8 @@ function closeLb(){document.getElementById('lb').classList.remove('on')}
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on')},3000)}
 function cmpImg(dU,mW,q){return new Promise(function(r){var i=new Image();i.onload=function(){var c=document.createElement('canvas');var w=i.width,h=i.height;if(w>mW){h=h*mW/w;w=mW}c.width=w;c.height=h;c.getContext('2d').drawImage(i,0,0,w,h);r(c.toDataURL('image/jpeg',q))};i.src=dU})}
 function copyText(t){navigator.clipboard.writeText(t).then(function(){toast('📋 تم النسخ')}).catch(function(){toast('❌ فشل النسخ')})}
+function togPw(id,btn){var inp=document.getElementById(id);if(inp.type==='password'){inp.type='text';btn.textContent='🙈'}else{inp.type='password';btn.textContent='👁️'}}
+function updateSlugPreview(){var v=document.getElementById('rSlug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'').replace(/--+/g,'-');var el=document.getElementById('slugPreview');if(v)el.innerHTML='رابط متجرك: <code>'+location.origin+location.pathname+'#store-'+v+'</code>';else el.innerHTML='مثال: <code>al-falani</code>'}
 
 /* ===== FOOTER ===== */
 function rFtr(){
@@ -928,7 +944,11 @@ function rFtr(){
 /* ===== HASH ROUTING ===== */
 function checkHash(){
   var h=location.hash;
-  if(h.indexOf('#store-')===0){storeViewId=h.substring(7);cv='store';}
+  if(h.indexOf('#store-')===0){
+    var slug=h.substring(7);
+    var v=DB.vendors.find(function(x){return x.slug===slug||x.id===slug});
+    if(v){storeViewId=v.id;cv='store';}
+  }
 }
 
 /* ===== INIT ===== */
