@@ -218,7 +218,9 @@ if(!DB){
     adSlots: 5,
     socialLinks: Object.assign({},SOCIAL_LINKS),
     paymentNumbers: PAYMENT_NUMBERS.slice(),
-    adminPass: SUPER_ADMIN_PASS
+    adminPass: SUPER_ADMIN_PASS,
+    customers: [],
+    customerOrders: []
   };
   saveDb();
 }
@@ -226,9 +228,11 @@ if(!DB){
 /* ===== STATE ===== */
 var V = null; // current vendor
 var SA = null; // super admin logged in
+var C = null; // current customer
 var cv = 'home'; // current view
 var vendorTab = 'products';
 var adminTab = 'vendors';
+var customerTab = 'orders';
 
 /* ===== IMG GEN ===== */
 function genImg(name,c){
@@ -242,10 +246,14 @@ function render(){
   var h='';
   h+=rHdr();
   if(cv==='home')        {h+=rHero();h+=rStats();h+=rPricing();h+=rFeatured()}
-  else if(cv==='auth')   {h+=rAuth()}
+  else if(cv==='auth')   {if(authMode==='custLogin'||authMode==='custReg'){h+=rCustomerAuth()}else{h+=rAuth()}}
   else if(cv==='vendor') {h+=rVendorDash()}
   else if(cv==='store')  {h+=rPublicStore()}
   else if(cv==='admin')  {h+=rSuperAdmin()}
+  else if(cv==='privacy'){h+=rPrivacy()}
+  else if(cv==='refund') {h+=rRefund()}
+  else if(cv==='about')  {h+=rAbout()}
+  else if(cv==='customer'){h+=rCustomerDash()}
   h+=rFtr();
   a.innerHTML=h;
   rSocial();
@@ -264,8 +272,12 @@ function rHdr(){
     h+='<span class="bdg bdg-info">🏪 '+V.name+'</span>';
     h+='<button class="btn btn-n btn-sm" onclick="go(\'vendor\')">📊 لوحتي</button>';
     h+='<button class="btn btn-n btn-sm" onclick="V=null;go(\'home\')">🚪 خروج</button>';
+  } else if(C){
+    h+='<span class="bdg bdg-info">👤 '+C.name+'</span>';
+    h+='<button class="btn btn-n btn-sm" onclick="go(\'customer\')">📦 طلباتي</button>';
+    h+='<button class="btn btn-n btn-sm" onclick="C=null;go(\'home\')">🚪 خروج</button>';
   } else {
-    h+='<button class="btn btn-n btn-sm" onclick="cv=\'auth\';render()">🔑 دخول عطار</button>';
+    h+='<button class="btn btn-n btn-sm" onclick="showLoginPopup()">🔑 تسجيل الدخول</button>';
     h+='<button class="btn btn-sm" style="background:var(--ac);color:#fff" onclick="showReg()">📝 سجل متجرك</button>';
   }
   h+='</div></div></header>';
@@ -278,7 +290,7 @@ function rSocial(){
   bar.innerHTML='';
   var sl=DB.socialLinks||SOCIAL_LINKS;
   if(sl.whatsapp)bar.innerHTML+='<a class="social-btn social-wa" href="'+sl.whatsapp+'" target="_blank" title="واتساب">💬</a>';
-  if(sl.facebook)bar.innerHTML+='<a class="social-btn social-fb" href="'+sl.facebook+'" target="_blank" title="فيسبوك">🌐</a>';
+  if(sl.facebook)bar.innerHTML+='<a class="social-btn social-fb" href="'+sl.facebook+'" target="_blank" title="فيسبوك">📘</a>';
 }
 
 /* ===== HERO ===== */
@@ -289,7 +301,7 @@ function rHero(){
     '<p>منصة عطارة المغربلين — متجرك الخاص للبهارات والأعشاب. سجّل الآن وابدأ البيع مجاناً حتى 15 منتج</p>'+
     '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">'+
       '<button class="btn btn-a btn-lg" onclick="showReg()">🏪 سجل متجرك مجاناً</button>'+
-      '<button class="btn btn-n btn-lg" onclick="cv=\'auth\';render()">🔑 لديك حساب؟ سجل دخول</button>'+
+      '<button class="btn btn-n btn-lg" onclick="showLoginPopup()">🔑 تسجيل الدخول</button>'+
     '</div>'+
   '</div></section>';
 }
@@ -454,7 +466,7 @@ function rAuth(){
     h+='<div class="fg"><label>البريد الإلكتروني</label><input type="email" id="aE" placeholder="admin@attara.com"></div>';
     h+='<div class="fg"><label>كلمة المرور</label><div class="pw-wrap"><input type="password" id="aP" placeholder="••••••••"><button class="pw-eye" onclick="togPw(\'aP\',this)">👁️</button></div></div>';
     h+='<button class="btn btn-a btn-lg" style="width:100%;margin-top:10px" onclick="superAdminLogin()">👑 دخول السوبر أدمن</button>';
-    h+='<p style="margin-top:16px;font-size:11px;color:var(--txtm)">'+SUPER_ADMIN_EMAIL+' / '+SUPER_ADMIN_PASS+'</p>';
+    h+='<p style="margin-top:16px;font-size:11px;color:var(--txtm)">🔑 ادخل بيانات السوبر أدمن للدخول</p>';
   }
   h+='</div></div>';
   return h;
@@ -757,7 +769,10 @@ function rPublicStore(){
       '<div class="prod-body">'+
         '<h3 class="prod-title">'+p.name+'</h3>'+
         '<p class="prod-desc">'+p.desc+'</p>'+
-        '<span class="stock-badge '+sc+'">'+st+'</span>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+          '<span class="stock-badge '+sc+'">'+st+'</span>'+
+          (p.stock>0?'<button class="btn btn-p btn-sm" onclick="event.stopPropagation();showPlaceOrder(\''+p.id+'\')">🛒 اطلب</button>':'')+
+        '</div>'+
       '</div></div>';
   }).join('')+'</div>';
   if(!vp.length)h+='<div class="empty"><div class="empty-ic">📦</div><h4>لا توجد منتجات بعد</h4></div>';
@@ -1073,6 +1088,260 @@ function chgAdminPass(){
 function savePayNums(){DB.paymentNumbers.forEach(function(pm,i){pm.number=document.getElementById('pmN'+i).value.trim();pm.name=document.getElementById('pmNa'+i).value.trim()});saveDb();toast('✅ تم الحفظ')}
 function saveSocial(){if(!DB.socialLinks)DB.socialLinks={};DB.socialLinks.whatsapp=document.getElementById('sWa').value.trim();DB.socialLinks.facebook=document.getElementById('sFb').value.trim();saveDb();rSocial();toast('✅ تم الحفظ')}
 
+/* ===== LOGIN POPUP ===== */
+function showLoginPopup(){
+  var h='<div style="text-align:center">'+
+    '<p style="color:var(--txtl);margin-bottom:24px;font-size:14px">اختر نوع الحساب للدخول</p>'+
+    '<div style="display:grid;gap:14px">'+
+      '<div onclick="clMo();cv=\'auth\';authMode=\'login\';render()" style="cursor:pointer;padding:20px;border:2px solid var(--brd);border-radius:var(--r);transition:var(--t);display:flex;align-items:center;gap:14px" onmouseover="this.style.borderColor=\'var(--p)\'" onmouseout="this.style.borderColor=\'var(--brd)\'">'+
+        '<div style="font-size:36px">🏪</div>'+
+        '<div style="text-align:right"><strong style="font-size:16px;color:var(--pd)">دخول عطار</strong><br><span style="font-size:12px;color:var(--txtl)">إدارة متجرك ومنتجاتك</span></div>'+
+      '</div>'+
+      '<div onclick="clMo();cv=\'auth\';authMode=\'custLogin\';render()" style="cursor:pointer;padding:20px;border:2px solid var(--brd);border-radius:var(--r);transition:var(--t);display:flex;align-items:center;gap:14px" onmouseover="this.style.borderColor=\'var(--p)\'" onmouseout="this.style.borderColor=\'var(--brd)\'">'+
+        '<div style="font-size:36px">👤</div>'+
+        '<div style="text-align:right"><strong style="font-size:16px;color:var(--pd)">دخول عميل</strong><br><span style="font-size:12px;color:var(--txtl)">تصفح المتاجر وطلب المنتجات</span></div>'+
+      '</div>'+
+    '</div>'+
+    '<p style="margin-top:20px;font-size:13px;color:var(--txtl)">ليس لديك حساب؟ <a href="#" onclick="clMo();showReg();return false" style="color:var(--p);font-weight:600">سجل متجرك</a> أو <a href="#" onclick="clMo();cv=\'auth\';authMode=\'custReg\';render();return false" style="color:var(--p);font-weight:600">سجل كعميل</a></p>'+
+  '</div>';
+  sMo('🔑 تسجيل الدخول',h,'clMo()');
+  setTimeout(function(){var f=document.querySelector('.md-f');if(f)f.style.display='none'},50);
+}
+
+/* ===== CUSTOMER AUTH ===== */
+function rCustomerAuth(){
+  var h='<div class="main"><div class="auth-box">';
+  h+='<div style="font-size:48px;margin-bottom:12px">👤</div>';
+  if(authMode==='custLogin'){
+    h+='<h2>دخول العميل</h2>';
+    h+='<p style="color:var(--txtl);margin-bottom:24px">ادخل بريدك وكلمة المرور</p>';
+    h+='<div class="fg"><label>البريد الإلكتروني</label><input type="email" id="cE" placeholder="customer@email.com"></div>';
+    h+='<div class="fg"><label>كلمة المرور</label><div class="pw-wrap"><input type="password" id="cP" placeholder="••••••••"><button class="pw-eye" onclick="togPw(\'cP\',this)">👁️</button></div></div>';
+    h+='<button class="btn btn-p btn-lg" style="width:100%;margin-top:10px" onclick="customerLogin()">🔑 تسجيل الدخول</button>';
+    h+='<p style="margin-top:16px;font-size:13px;color:var(--txtl)">ليس لديك حساب؟ <a href="#" onclick="authMode=\'custReg\';render();return false" style="color:var(--p);font-weight:600">سجل الآن</a></p>';
+    h+='<p style="margin-top:8px;font-size:13px;color:var(--txtl)"><a href="#" onclick="authMode=\'login\';render();return false" style="color:var(--p)">دخول عطار بدلاً</a></p>';
+  } else if(authMode==='custReg'){
+    h+='<h2>تسجيل عميل جديد</h2>';
+    h+='<p style="color:var(--txtl);margin-bottom:24px">أنشئ حسابك وابدأ التسوق</p>';
+    h+='<div class="fg"><label>الاسم</label><input type="text" id="cN" placeholder="اسمك الكامل"></div>';
+    h+='<div class="fg"><label>البريد الإلكتروني</label><input type="email" id="cRE" placeholder="customer@email.com"></div>';
+    h+='<div class="fg"><label>رقم الموبايل</label><input type="tel" id="cPh" placeholder="01xxxxxxxxx"></div>';
+    h+='<div class="fg"><label>كلمة المرور</label><div class="pw-wrap"><input type="password" id="cRP" placeholder="••••••••"><button class="pw-eye" onclick="togPw(\'cRP\',this)">👁️</button></div></div>';
+    h+='<div class="fg"><label>العنوان (اختياري)</label><input type="text" id="cAddr" placeholder="العنوان للتوصيل"></div>';
+    h+='<button class="btn btn-ok btn-lg" style="width:100%;margin-top:10px" onclick="customerRegister()">📝 إنشاء الحساب</button>';
+    h+='<p style="margin-top:16px;font-size:13px;color:var(--txtl)">لديك حساب؟ <a href="#" onclick="authMode=\'custLogin\';render();return false" style="color:var(--p);font-weight:600">سجل دخول</a></p>';
+  }
+  h+='</div></div>';
+  return h;
+}
+function customerLogin(){
+  var e=document.getElementById('cE').value.trim(),p=document.getElementById('cP').value;
+  if(!DB.customers)DB.customers=[];
+  var c=DB.customers.find(function(x){return x.email===e&&x.pass===p});
+  if(!c)return toast('❌ بيانات الدخول غير صحيحة');
+  C=c;saveDb();toast('✅ مرحباً '+c.name);go('customer');
+}
+function customerRegister(){
+  var n=document.getElementById('cN').value.trim(),e=document.getElementById('cRE').value.trim(),
+      ph=document.getElementById('cPh').value.trim(),pa=document.getElementById('cRP').value,
+      addr=document.getElementById('cAddr').value.trim();
+  if(!n||!e||!ph||!pa)return toast('⚠️ أكمل جميع الحقول المطلوبة');
+  if(!DB.customers)DB.customers=[];
+  if(DB.customers.find(function(x){return x.email===e}))return toast('⚠️ البريد مسجل مسبقاً');
+  var c={id:'c_'+Date.now(),name:n,email:e,phone:ph,pass:pa,address:addr,createdAt:new Date().toLocaleString('ar-EG')};
+  DB.customers.push(c);
+  if(!DB.customerOrders)DB.customerOrders=[];
+  saveDb();
+  C=c;toast('✅ تم إنشاء حسابك! مرحباً '+n);go('customer');
+}
+
+/* ===== CUSTOMER DASHBOARD ===== */
+function rCustomerDash(){
+  if(!C)return go('home');
+  var cOrders=(DB.customerOrders||[]).filter(function(o){return o.cid===C.id});
+  var h='<div class="main">';
+  h+='<div class="store-header"><div class="store-avatar">👤</div><div class="store-info"><h2>'+C.name+'</h2><p>'+(C.address||'عميل في منصة عطارة المغربلين')+'</p></div></div>';
+  h+='<div class="tabs">'+
+    '<div class="tab'+(customerTab==='orders'?' on':'')+'" onclick="customerTab=\'orders\';render()">📦 طلباتي ('+cOrders.length+')</div>'+
+    '<div class="tab'+(customerTab==='browse'?' on':'')+'" onclick="customerTab=\'browse\';render()">🏪 تصفح المتاجر</div>'+
+    '<div class="tab'+(customerTab==='profile'?' on':'')+'" onclick="customerTab=\'profile\';render()">⚙️ حسابي</div>'+
+  '</div>';
+  if(customerTab==='orders') h+=rCustOrders(cOrders);
+  else if(customerTab==='browse') h+=rCustBrowse();
+  else if(customerTab==='profile') h+=rCustProfile();
+  h+='</div>';
+  return h;
+}
+function rCustOrders(cOrders){
+  if(!cOrders.length)return '<div class="empty"><div class="empty-ic">📦</div><h4>لا توجد طلبات بعد</h4><p>تصفح المتاجر واطلب منتجاتك المفضلة</p><button class="btn btn-p" style="margin-top:12px" onclick="customerTab=\'browse\';render()">🏪 تصفح المتاجر</button></div>';
+  return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>رقم الطلب</th><th>المتجر</th><th>المنتجات</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>'+
+    cOrders.map(function(o){
+      var sc=o.status==='pending'?'bdg-warn':o.status==='confirmed'?'bdg-info':o.status==='delivered'?'bdg-ok':'bdg-err';
+      var st=o.status==='pending'?'⏳ معلق':o.status==='confirmed'?'✅ مؤكد':o.status==='delivered'?'📦 تم التوصيل':'❌ ملغى';
+      return '<tr><td>#'+o.id.slice(-6)+'</td><td>'+o.vendorName+'</td><td style="font-size:12px">'+o.itemsSummary+'</td><td>'+o.total+' ج.م</td><td><span class="bdg '+sc+'">'+st+'</span></td><td>'+o.date+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+function rCustBrowse(){
+  var active=DB.vendors.filter(function(v){return v.active});
+  if(!active.length)return '<div class="empty"><div class="empty-ic">🏪</div><h4>لا توجد متاجر نشطة حالياً</h4></div>';
+  return '<div class="sec-h"><div><h3 class="sec-t">🏪 المتاجر المتاحة</h3><p class="sec-s">تصفح المتاجر واختر منتجاتك</p></div></div>'+
+    '<div class="grid">'+active.map(function(v){
+      var vp=DB.products.filter(function(p){return p.vid===v.id});
+      return '<div class="card" onclick="openStore(\''+(v.slug||v.id)+'\')" style="cursor:pointer">'+
+        '<div style="height:100px;background:linear-gradient(135deg,var(--pd),var(--pl));display:flex;align-items:center;justify-content:center;font-size:40px;color:#fff">'+v.icon+'</div>'+
+        '<div class="card-body">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+            '<h3 class="card-title" style="margin:0">'+v.name+'</h3>'+
+            '<span class="bdg bdg-'+PLANS[v.plan].cls+'">'+PLANS[v.plan].name+'</span>'+
+          '</div>'+
+          '<p class="card-desc">'+(v.desc||'بهارات وأعشاب طبيعية')+'</p>'+
+          '<span style="font-size:12px;color:var(--txtl)">'+vp.length+' منتج</span>'+
+        '</div>'+
+      '</div>';
+    }).join('')+'</div>';
+}
+function rCustProfile(){
+  return '<div class="card" style="padding:24px;max-width:500px">'+
+    '<h3 style="margin-bottom:16px">⚙️ بياناتي</h3>'+
+    '<div class="fg"><label>الاسم</label><input id="cpN" value="'+C.name+'"></div>'+
+    '<div class="fg"><label>البريد الإلكتروني</label><input id="cpE" value="'+C.email+'" type="email"></div>'+
+    '<div class="fg"><label>رقم الموبايل</label><input id="cpPh" value="'+C.phone+'"></div>'+
+    '<div class="fg"><label>العنوان</label><input id="cpAddr" value="'+(C.address||'')+'"></div>'+
+    '<div class="fg"><label>كلمة المرور الجديدة (اتركها فارغة إذا لا تريد التغيير)</label><div class="pw-wrap"><input type="password" id="cpP" placeholder="••••••••"><button class="pw-eye" onclick="togPw(\'cpP\',this)">👁️</button></div></div>'+
+    '<button class="btn btn-p" onclick="updateCustProfile()">💾 حفظ التغييرات</button>'+
+  '</div>';
+}
+function updateCustProfile(){
+  C.name=document.getElementById('cpN').value.trim();
+  C.email=document.getElementById('cpE').value.trim();
+  C.phone=document.getElementById('cpPh').value.trim();
+  C.address=document.getElementById('cpAddr').value.trim();
+  var np=document.getElementById('cpP').value;
+  if(np&&np.length>=4)C.pass=np;
+  saveDb();toast('✅ تم حفظ التغييرات');
+}
+
+/* ===== PLACE ORDER (CUSTOMER) ===== */
+function showPlaceOrder(productId){
+  if(!C){toast('⚠️ سجل دخولك أولاً كعميل');showLoginPopup();return}
+  var p=DB.products.find(function(x){return x.id===productId});
+  if(!p)return toast('❌ المنتج غير موجود');
+  var v=DB.vendors.find(function(x){return x.id===p.vid});
+  if(!v)return toast('❌ المتجر غير موجود');
+  var h='<div style="text-align:right">'+
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:8px">'+
+      '<img src="'+(p.img||genImg(p.name,'#8B4513'))+'" style="width:60px;height:60px;border-radius:8px;object-fit:cover">'+
+      '<div><strong>'+p.name+'</strong><br><span style="color:var(--p);font-weight:700">'+p.price+' ج.م</span></div>'+
+    '</div>'+
+    '<div class="fg"><label>الكمية</label><input type="number" id="ordQty" value="1" min="1" max="'+p.stock+'"></div>'+
+    '<div class="fg"><label>عنوان التوصيل</label><input id="ordAddr" value="'+(C.address||'')+'"></div>'+
+    '<div class="fg"><label>ملاحظات (اختياري)</label><textarea id="ordNotes" rows="2" placeholder="أي ملاحظات على الطلب..."></textarea></div>'+
+    '<div style="background:var(--bg);padding:12px;border-radius:8px;margin:12px 0">'+
+      '<div style="display:flex;justify-content:space-between"><span>سعر الوحدة:</span><span>'+p.price+' ج.م</span></div>'+
+      '<div style="display:flex;justify-content:space-between;font-weight:700;margin-top:6px;border-top:1px solid var(--brd);padding-top:6px"><span>الإجمالي:</span><span id="ordTotal">'+p.price+' ج.م</span></div>'+
+    '</div>'+
+  '</div>';
+  sMo('🛒 طلب منتج',h,'placeOrder(\''+productId+'\')');
+  setTimeout(function(){
+    var qty=document.getElementById('ordQty');
+    if(qty)qty.addEventListener('input',function(){
+      var q=parseInt(this.value)||1;
+      document.getElementById('ordTotal').textContent=(p.price*q)+' ج.م';
+    });
+  },100);
+}
+function placeOrder(productId){
+  var p=DB.products.find(function(x){return x.id===productId});
+  var v=DB.vendors.find(function(x){return x.id===p.vid});
+  var qty=parseInt(document.getElementById('ordQty').value)||1;
+  var addr=document.getElementById('ordAddr').value.trim();
+  var notes=document.getElementById('ordNotes').value.trim();
+  if(qty<1||qty>p.stock)return toast('⚠️ الكمية غير متاحة');
+  if(!addr)return toast('⚠️ أدخل عنوان التوصيل');
+  var total=p.price*qty;
+  if(!DB.customerOrders)DB.customerOrders=[];
+  var order={
+    id:'co_'+Date.now(),cid:C.id,customerName:C.name,customerPhone:C.phone,
+    vid:v.id,vendorName:v.name,productId:p.id,productName:p.name,
+    qty:qty,price:p.price,total:total,address:addr,notes:notes,
+    itemsSummary:p.name+' × '+qty,
+    status:'pending',date:new Date().toLocaleString('ar-EG'),ts:Date.now()
+  };
+  DB.customerOrders.push(order);
+  DB.orders.push({id:order.id,vid:v.id,customerName:C.name+' (عميل)',total:total,status:'pending',date:order.date});
+  p.stock=Math.max(0,p.stock-qty);
+  saveDb();clMo();
+  toast('✅ تم الطلب بنجاح! رقم الطلب: #'+order.id.slice(-6));
+  if(cv==='store')render();
+}
+
+/* ===== PAGES ===== */
+function rPrivacy(){
+  return '<div class="main"><div class="auth-box" style="max-width:800px;text-align:right">'+
+    '<h2 style="margin-bottom:20px">🔒 سياسة الخصوصية</h2>'+
+    '<div style="line-height:2.2;font-size:14px;color:var(--txt)">'+
+    '<p>نحن في <strong>عطارة المغربلين</strong> نحترم خصوصيتك ونلتزم بحماية بياناتك الشخصية.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">1. جمع البيانات</h3>'+
+    '<p>نجمع البيانات التي تقدمها عند التسجيل مثل: الاسم، البريد الإلكتروني، رقم الموبايل، ووصف المتجر. هذه البيانات تُستخدم فقط لتقديم خدمات المنصة.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">2. استخدام البيانات</h3>'+
+    '<p>نستخدم بياناتك لإدارة حسابك، تفعيل متجرك، تسهيل الطلبات، والتواصل معك بخصوص خدمات المنصة. نحن لا نبيع أو نشارك بياناتك مع أطراف ثالثة.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">3. حماية البيانات</h3>'+
+    '<p>نستخدم تقنيات أمان متقدمة لحماية بياناتك من الوصول غير المصرح به. كلمات المرور مخزنة بشكل آمن ولا يمكن لأحد الاطلاع عليها.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">4. ملفات تعريف الارتباط (Cookies)</h3>'+
+    '<p>نستخدم localStorage لحفظ تفضيلاتك وبيانات جلستك محلياً على جهازك لتحسين تجربة الاستخدام.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">5. حقوقك</h3>'+
+    '<p>لك الحق في طلب حذف حسابك وبياناتك في أي وقت عن طريق التواصل مع إدارة المنصة.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">6. التحديثات</h3>'+
+    '<p>قد نقوم بتحديث هذه السياسة من وقت لآخر. سيتم إخطارك بأي تغييرات جوهرية.</p>'+
+    '</div>'+
+    '<button class="btn btn-p btn-lg" style="margin-top:24px" onclick="go(\'home\')">← العودة للرئيسية</button>'+
+  '</div></div>';
+}
+function rRefund(){
+  return '<div class="main"><div class="auth-box" style="max-width:800px;text-align:right">'+
+    '<h2 style="margin-bottom:20px">🔄 سياسة الاسترجاع والاستبدال</h2>'+
+    '<div style="line-height:2.2;font-size:14px;color:var(--txt)">'+
+    '<p>نسعى في <strong>عطارة المغربلين</strong> لتقديم أفضل تجربة تسوق لعملائنا. فيما يلي سياسة الاسترجاع والاستبدال:</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">1. شروط الاسترجاع</h3>'+
+    '<p>✅ يمكن استرجاع المنتج خلال <strong>14 يوماً</strong> من تاريخ الاستلام.<br>'+
+    '✅ يجب أن يكون المنتج في حالته الأصلية وغير مفتوح.<br>'+
+    '✅ يجب إرفاق فاتورة الشراء أو رقم الطلب.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">2. حالات عدم الاسترجاع</h3>'+
+    '<p>❌ المنتجات المفتوحة أو المستخدمة.<br>'+
+    '❌ المنتجات التالفة بسبب سوء الاستخدام.<br>'+
+    '❌ المنتجات المخفضة في العروض الخاصة (حسب شروط العرض).</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">3. الاستبدال</h3>'+
+    '<p>يمكن استبدال المنتج بمنتج آخر من نفس المتجر أو بالقيمة المالية له. يتم الاستبدال خلال <strong>7 أيام عمل</strong> من تاريخ الموافقة.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">4. استرداد المبلغ</h3>'+
+    '<p>في حالة الموافقة على الاسترجاع، يتم استرداد المبلغ خلال <strong>5-7 أيام عمل</strong> بنفس وسيلة الدفع الأصلية.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">5. كيفية طلب الاسترجاع</h3>'+
+    '<p>تواصل مع إدارة المنصة عبر واتساب أو فيسبوك مع ذكر رقم الطلب وسبب الاسترجاع.</p>'+
+    '</div>'+
+    '<button class="btn btn-p btn-lg" style="margin-top:24px" onclick="go(\'home\')">← العودة للرئيسية</button>'+
+  '</div></div>';
+}
+function rAbout(){
+  return '<div class="main"><div class="auth-box" style="max-width:800px;text-align:right">'+
+    '<h2 style="margin-bottom:20px">🌿 من نحن</h2>'+
+    '<div style="line-height:2.2;font-size:14px;color:var(--txt)">'+
+    '<div style="text-align:center;font-size:48px;margin-bottom:16px">🏪</div>'+
+    '<p style="text-align:center;font-size:18px;color:var(--p);font-weight:700;margin-bottom:20px">عطارة المغربلين — منصة العطارين الأولى</p>'+
+    '<p>نحن منصة رقمية متخصصة في ربط البائعين والمهتمين بالبهارات والأعشاب الطبيعية والمنتجات العشبية. نوفر لكل عطار متجر إلكتروني خاص به يستطيع من خلاله عرض منتجاته وإدارة طلباته والوصول لعملاء جدد.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">🎯 رسالتنا</h3>'+
+    '<p>تمكين العطارين الصغار والكبار من الوصول للسوق الرقمي بسهولة، وتوفير منصة موثوقة للتسوق الإلكتروني للمنتجات الطبيعية والبهارات.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">🌟 ما نقدمه</h3>'+
+    '<p>✅ متاجر إلكترونية جاهزة لكل عطار<br>'+
+    '✅ لوحة تحكم سهلة لإدارة المنتجات والطلبات<br>'+
+    '✅ باقات اشتراك مرنة تناسب الجميع<br>'+
+    '✅ مزاد إعلانات لزيادة visibility المتاجر<br>'+
+    '✅ دعم فني مستمر</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">📞 تواصل معنا</h3>'+
+    '<p>يسعدنا تواصلك معنا في أي وقت عبر واتساب أو فيسبوك من الأيقونات الموجودة في الصفحة.</p>'+
+    '</div>'+
+    '<button class="btn btn-p btn-lg" style="margin-top:24px" onclick="go(\'home\')">← العودة للرئيسية</button>'+
+  '</div></div>';
+}
+
 /* ===== UTILS ===== */
 function go(v){cv=v;window.scrollTo(0,0);render()}
 function sMo(t,b,a){
@@ -1095,9 +1364,9 @@ function rFtr(){
   return '<footer class="ftr"><p><strong>عطارة المغربلين</strong> — منصة العطارين © 2026</p>'+
   '<div class="ftr-links">'+
     '<a href="#" onclick="go(\'home\');return false">الرئيسية</a>'+
-    '<a href="#" onclick="return false">سياسة الخصوصية</a>'+
-    '<a href="#" onclick="return false">سياسة الاسترجاع</a>'+
-    '<a href="#" onclick="return false">من نحن</a>'+
+    '<a href="#" onclick="go(\'privacy\');return false">سياسة الخصوصية</a>'+
+    '<a href="#" onclick="go(\'refund\');return false">سياسة الاسترجاع</a>'+
+    '<a href="#" onclick="go(\'about\');return false">من نحن</a>'+
   '</div>'+
   '<p style="font-size:11px;opacity:.6;margin-top:8px">توصيل لجميع المحافظات • الدفع إنستاباي / فودافون كاش</p></footer>';
 }
