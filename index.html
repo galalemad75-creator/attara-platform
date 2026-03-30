@@ -146,7 +146,7 @@ a{color:inherit;text-decoration:none}
 .social-bar{position:fixed;bottom:80px;left:20px;z-index:50;display:flex;flex-direction:column;gap:10px}
 .social-btn{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;box-shadow:0 4px 15px rgba(0,0,0,.2);transition:var(--t);text-decoration:none;border:none;cursor:pointer}
 .social-btn:hover{transform:scale(1.1)}
-.social-wa{background:#25D366}.social-fb{background:#1877F2}
+.social-wa{background:#25D366}..social-fb{background:#1877F2;font-weight:900;font-family:sans-serif}
 
 /* PAY BOX */
 .pay-box{background:var(--bg);border-radius:var(--rs);padding:16px;border:1px solid var(--brd);margin:10px 0}
@@ -290,7 +290,7 @@ function rSocial(){
   bar.innerHTML='';
   var sl=DB.socialLinks||SOCIAL_LINKS;
   if(sl.whatsapp)bar.innerHTML+='<a class="social-btn social-wa" href="'+sl.whatsapp+'" target="_blank" title="واتساب">💬</a>';
-  if(sl.facebook)bar.innerHTML+='<a class="social-btn social-fb" href="'+sl.facebook+'" target="_blank" title="فيسبوك">📘</a>';
+  if(sl.facebook)bar.innerHTML+='<a class="social-btn social-fb" href="'+sl.facebook+'" target="_blank" title="فيسبوك">f</a>';
 }
 
 /* ===== HERO ===== */
