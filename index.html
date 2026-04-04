@@ -4,13 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>عطارة المغربلين — منصة العطارين</title>
+<meta name="description" content="منصة عطارة المغربلين — متجرك الإلكتروني للبهارات والأعشاب الطبيعية. سجل متجرك مجاناً وابدأ البيع.">
+<meta name="robots" content="index, follow">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--p:#8B4513;--pd:#5C2D0E;--pl:#A0522D;--ac:#DAA520;--al:#F0C040;--bg:#FFF8F0;--card:#fff;--txt:#333;--txtl:#777;--txtm:#aaa;--brd:#E8DDD0;--sh:0 2px 15px rgba(0,0,0,.08);--shl:0 8px 30px rgba(0,0,0,.12);--r:14px;--rs:10px;--t:all .3s ease;--ok:#28a745;--warn:#ffc107;--err:#dc3545}
-body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--txt);line-height:1.7;min-height:100vh}
+body.dark{--bg:#1a1410;--card:#2a2018;--txt:#f0e6d8;--txtl:#b8a898;--txtm:#887868;--brd:#3d3028;--sh:0 2px 15px rgba(0,0,0,.3);--shl:0 8px 30px rgba(0,0,0,.5)}
+body.dark .hdr{background:linear-gradient(135deg,#1a1008,#2a1a10,#3d2818)}
+body.dark .tbl th{background:#3d2818}
+body.dark .hero{background:linear-gradient(135deg,#1a1008,#2a1a10)}
+body.dark .auth-box h2,body.dark .plan-name{color:var(--al)}
+body.dark .fg input,body.dark .fg textarea,body.dark .fg select{background:var(--bg);color:var(--txt)}
+body.dark .up-area{border-color:var(--brd)}
+body.dark .pw-eye{filter:invert(1)}
+body{font-family:'Tajawal',sans-serif;background:var(--bg);color:var(--txt);line-height:1.7;min-height:100vh;transition:background .3s,color .3s}
 ::-webkit-scrollbar{width:7px}::-webkit-scrollbar-thumb{background:var(--ac);border-radius:4px}
 a{color:inherit;text-decoration:none}
+.dark-toggle{position:fixed;top:14px;left:14px;z-index:9998;width:42px;height:42px;border-radius:50%;background:var(--card);border:2px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;box-shadow:var(--sh);transition:var(--t)}
+.dark-toggle:hover{border-color:var(--p);transform:scale(1.05)}
 .hdr{background:linear-gradient(135deg,var(--pd),var(--p),var(--pl));color:#fff;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.2)}
 .hdr-in{max-width:1300px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 .logo{display:flex;align-items:center;gap:12px;cursor:pointer}
@@ -173,6 +185,7 @@ a{color:inherit;text-decoration:none}
 </head>
 <body>
 
+<button class="dark-toggle" onclick="toggleDark()" title="تبديل الوضع"><span id="darkIcon">🌙</span></button>
 <div id="app"></div>
 <div class="toast" id="toast"></div>
 <div class="lb" id="lb" onclick="closeLb()"><img id="lbImg"></div>
@@ -253,6 +266,7 @@ function render(){
   else if(cv==='privacy'){h+=rPrivacy()}
   else if(cv==='refund') {h+=rRefund()}
   else if(cv==='about')  {h+=rAbout()}
+  else if(cv==='contact'){h+=rContact()}
   else if(cv==='customer'){h+=rCustomerDash()}
   h+=rFtr();
   a.innerHTML=h;
@@ -1279,6 +1293,7 @@ function placeOrder(productId){
 function rPrivacy(){
   return '<div class="main"><div class="auth-box" style="max-width:800px;text-align:right">'+
     '<h2 style="margin-bottom:20px">🔒 سياسة الخصوصية</h2>'+
+    '<p style="font-size:12px;color:var(--txtl);margin-bottom:20px">آخر تحديث: أبريل 2026</p>'+
     '<div style="line-height:2.2;font-size:14px;color:var(--txt)">'+
     '<p>نحن في <strong>عطارة المغربلين</strong> نحترم خصوصيتك ونلتزم بحماية بياناتك الشخصية.</p>'+
     '<h3 style="color:var(--p);margin:20px 0 10px">1. جمع البيانات</h3>'+
@@ -1289,10 +1304,18 @@ function rPrivacy(){
     '<p>نستخدم تقنيات أمان متقدمة لحماية بياناتك من الوصول غير المصرح به. كلمات المرور مخزنة بشكل آمن ولا يمكن لأحد الاطلاع عليها.</p>'+
     '<h3 style="color:var(--p);margin:20px 0 10px">4. ملفات تعريف الارتباط (Cookies)</h3>'+
     '<p>نستخدم localStorage لحفظ تفضيلاتك وبيانات جلستك محلياً على جهازك لتحسين تجربة الاستخدام.</p>'+
-    '<h3 style="color:var(--p);margin:20px 0 10px">5. حقوقك</h3>'+
-    '<p>لك الحق في طلب حذف حسابك وبياناتك في أي وقت عن طريق التواصل مع إدارة المنصة.</p>'+
-    '<h3 style="color:var(--p);margin:20px 0 10px">6. التحديثات</h3>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">5. الإعلانات (Google AdSense)</h3>'+
+    '<p>قد نعرض إعلانات عبر Google AdSense. يستخدم Google ملفات تعريف الارتباط لعرض إعلانات بناءً على زياراتك السابقة. يمكنك تعطيل الإعلانات المخصصة من <a href="https://www.google.com/settings/ads" target="_blank" style="color:var(--p)">إعدادات Google</a>.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">6. خدمات الطرف الثالث</h3>'+
+    '<p>قد نستخدم خدمات طرف ثالث مثل Google Fonts وGoogle Analytics. هذه الخدمات لديها سياسات خصوصية خاصة بها.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">7. خصوصية الأطفال</h3>'+
+    '<p>منصتنا غير مخصصة للأطفال أقل من 18 سنة. لا نجمع بيانات شخصية عن الأطفال عن علم.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">8. حقوقك</h3>'+
+    '<p>لك الحق في الوصول إلى بياناتك، تعديلها، أو حذفها في أي وقت عن طريق التواصل مع إدارة المنصة.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">9. التحديثات</h3>'+
     '<p>قد نقوم بتحديث هذه السياسة من وقت لآخر. سيتم إخطارك بأي تغييرات جوهرية.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">10. تواصل معنا</h3>'+
+    '<p>لأي استفسار حول الخصوصية: <a href="#" onclick="go(\'contact\');return false" style="color:var(--p)">اتصل بنا</a></p>'+
     '</div>'+
     '<button class="btn btn-p btn-lg" style="margin-top:24px" onclick="go(\'home\')">← العودة للرئيسية</button>'+
   '</div></div>';
@@ -1329,14 +1352,45 @@ function rAbout(){
     '<p>نحن منصة رقمية متخصصة في ربط البائعين والمهتمين بالبهارات والأعشاب الطبيعية والمنتجات العشبية. نوفر لكل عطار متجر إلكتروني خاص به يستطيع من خلاله عرض منتجاته وإدارة طلباته والوصول لعملاء جدد.</p>'+
     '<h3 style="color:var(--p);margin:20px 0 10px">🎯 رسالتنا</h3>'+
     '<p>تمكين العطارين الصغار والكبار من الوصول للسوق الرقمي بسهولة، وتوفير منصة موثوقة للتسوق الإلكتروني للمنتجات الطبيعية والبهارات.</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">👁️ رؤيتنا</h3>'+
+    '<p>أن نكون المنصة الرائدة في مجال التجارة الإلكترونية للمنتجات الطبيعية والبهارات في مصر والشرق الأوسط.</p>'+
     '<h3 style="color:var(--p);margin:20px 0 10px">🌟 ما نقدمه</h3>'+
     '<p>✅ متاجر إلكترونية جاهزة لكل عطار<br>'+
     '✅ لوحة تحكم سهلة لإدارة المنتجات والطلبات<br>'+
-    '✅ باقات اشتراك مرنة تناسب الجميع<br>'+
-    '✅ مزاد إعلانات لزيادة visibility المتاجر<br>'+
+    '✅ باقات اشتراك مرنة تناسب الجميع (مجانية ومدفوعة)<br>'+
+    '✅ مزاد إعلانات لزيادة ظهور المتاجر<br>'+
+    '✅ نظام طلبات وتوصيل متكامل<br>'+
     '✅ دعم فني مستمر</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">📊 بالأرقام</h3>'+
+    '<p>✅ +100 متجر مسجل<br>✅ +500 منتج متنوع<br>✅ +1000 عميل راضي<br>✅ توصيل لجميع المحافظات</p>'+
+    '<h3 style="color:var(--p);margin:20px 0 10px">🔗 روابط سريعة</h3>'+
+    '<p><a href="#" onclick="go(\'privacy\');return false" style="color:var(--p)">سياسة الخصوصية</a> · <a href="#" onclick="go(\'refund\');return false" style="color:var(--p)">سياسة الاسترجاع</a> · <a href="#" onclick="go(\'contact\');return false" style="color:var(--p)">اتصل بنا</a></p>'+
     '<h3 style="color:var(--p);margin:20px 0 10px">📞 تواصل معنا</h3>'+
-    '<p>يسعدنا تواصلك معنا في أي وقت عبر واتساب أو فيسبوك من الأيقونات الموجودة في الصفحة.</p>'+
+    '<p>📧 <a href="mailto:emadh5156@gmail.com" style="color:var(--p)">emadh5156@gmail.com</a><br>'+
+    'أو من خلال صفحة <a href="#" onclick="go(\'contact\');return false" style="color:var(--p)">اتصل بنا</a></p>'+
+    '</div>'+
+    '<button class="btn btn-p btn-lg" style="margin-top:24px" onclick="go(\'home\')">← العودة للرئيسية</button>'+
+  '</div></div>';
+}
+function rContact(){
+  return '<div class="main"><div class="auth-box" style="max-width:700px;text-align:right">'+
+    '<h2 style="margin-bottom:8px">📬 اتصل بنا</h2>'+
+    '<p style="font-size:14px;color:var(--txtl);margin-bottom:24px">يسعدنا تلقي استفساراتك واقتراحاتك. فريق الدعم متاح للرد خلال 24-48 ساعة.</p>'+
+    '<div class="fg"><label>👤 الاسم الكامل</label><input type="text" id="cName" placeholder="أدخل اسمك"></div>'+
+    '<div class="fg"><label>📧 البريد الإلكتروني</label><input type="email" id="cEmail" placeholder="example@email.com" style="direction:ltr;text-align:left"></div>'+
+    '<div class="fg"><label>📋 الموضوع</label><select id="cSubject"><option value="">اختر الموضوع</option><option>استفسار عام</option><option>مشكلة تقنية</option><option>طلب استرجاع</option><option>شكوى</option><option>اقتراح</option><option>أخرى</option></select></div>'+
+    '<div class="fg"><label>💬 الرسالة</label><textarea id="cMsg" rows="5" placeholder="اكتب رسالتك هنا..."></textarea></div>'+
+    '<button class="btn btn-p btn-lg" style="width:100%" onclick="submitContact()">📨 إرسال الرسالة</button>'+
+    '<div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--brd)">'+
+      '<h3 style="color:var(--p);margin-bottom:10px">📞 طرق تواصل أخرى</h3>'+
+      '<p style="font-size:14px;color:var(--txtl);line-height:2">'+
+        '📧 <a href="mailto:emadh5156@gmail.com" style="color:var(--p)">emadh5156@gmail.com</a><br>'+
+        '🕐 السبت — الخميس: 9 صباحاً — 6 مساءً'+
+      '</p>'+
+    '</div>'+
+    '<div style="margin-top:16px">'+
+      '<h3 style="color:var(--p);margin-bottom:10px">🔗 روابط سريعة</h3>'+
+      '<p><a href="#" onclick="go(\'privacy\');return false" style="color:var(--p)">سياسة الخصوصية</a> · <a href="#" onclick="go(\'refund\');return false" style="color:var(--p)">سياسة الاسترجاع</a> · <a href="#" onclick="go(\'about\');return false" style="color:var(--p)">من نحن</a></p>'+
     '</div>'+
     '<button class="btn btn-p btn-lg" style="margin-top:24px" onclick="go(\'home\')">← العودة للرئيسية</button>'+
   '</div></div>';
@@ -1356,6 +1410,40 @@ function closeLb(){document.getElementById('lb').classList.remove('on')}
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(function(){t.classList.remove('on')},3000)}
 function cmpImg(dU,mW,q){return new Promise(function(r){var i=new Image();i.onload=function(){var c=document.createElement('canvas');var w=i.width,h=i.height;if(w>mW){h=h*mW/w;w=mW}c.width=w;c.height=h;c.getContext('2d').drawImage(i,0,0,w,h);r(c.toDataURL('image/jpeg',q))};i.src=dU})}
 function copyText(t){navigator.clipboard.writeText(t).then(function(){toast('📋 تم النسخ')}).catch(function(){toast('❌ فشل النسخ')})}
+
+/* ===== CONTACT FORM ===== */
+function submitContact(){
+  var n=document.getElementById('cName').value.trim();
+  var e=document.getElementById('cEmail').value.trim();
+  var s=document.getElementById('cSubject').value;
+  var m=document.getElementById('cMsg').value.trim();
+  if(!n||!e||!s||!m){toast('⚠️ يرجى ملء جميع الحقول');return}
+  var contacts=JSON.parse(localStorage.getItem('attara_contacts')||'[]');
+  contacts.push({name:n,email:e,subject:s,message:m,date:new Date().toISOString()});
+  localStorage.setItem('attara_contacts',JSON.stringify(contacts));
+  var body=encodeURIComponent('الاسم: '+n+'\nالبريد: '+e+'\nالموضوع: '+s+'\n\nالرسالة:\n'+m);
+  window.location.href='mailto:emadh5156@gmail.com?subject='+encodeURIComponent('[عطارة المغربلين] '+s)+'&body='+body;
+  toast('✅ تم إرسال رسالتك بنجاح!');
+  document.getElementById('cName').value='';
+  document.getElementById('cEmail').value='';
+  document.getElementById('cSubject').value='';
+  document.getElementById('cMsg').value='';
+}
+
+/* ===== DARK MODE ===== */
+function toggleDark(){
+  document.body.classList.toggle('dark');
+  var isDark=document.body.classList.contains('dark');
+  localStorage.setItem('attara_dark',isDark?'1':'0');
+  document.getElementById('darkIcon').textContent=isDark?'☀️':'🌙';
+}
+function initDark(){
+  if(localStorage.getItem('attara_dark')==='1'){
+    document.body.classList.add('dark');
+    var ic=document.getElementById('darkIcon');
+    if(ic)ic.textContent='☀️';
+  }
+}
 function togPw(id,btn){var inp=document.getElementById(id);if(inp.type==='password'){inp.type='text';btn.textContent='🙈'}else{inp.type='password';btn.textContent='👁️'}}
 function updateSlugPreview(){var v=document.getElementById('rSlug').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'').replace(/--+/g,'-');var el=document.getElementById('slugPreview');if(v)el.innerHTML='رابط متجرك: <code>'+location.origin+location.pathname+'#store-'+v+'</code>';else el.innerHTML='مثال: <code>al-falani</code>'}
 
@@ -1367,6 +1455,7 @@ function rFtr(){
     '<a href="#" onclick="go(\'privacy\');return false">سياسة الخصوصية</a>'+
     '<a href="#" onclick="go(\'refund\');return false">سياسة الاسترجاع</a>'+
     '<a href="#" onclick="go(\'about\');return false">من نحن</a>'+
+    '<a href="#" onclick="go(\'contact\');return false">اتصل بنا</a>'+
   '</div>'+
   '<p style="font-size:11px;opacity:.6;margin-top:8px">توصيل لجميع المحافظات • الدفع إنستاباي / فودافون كاش</p></footer>';
 }
@@ -1383,6 +1472,7 @@ function checkHash(){
 
 /* ===== INIT ===== */
 checkHash();
+initDark();
 render();
 
 </script>
