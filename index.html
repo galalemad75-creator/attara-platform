@@ -207,10 +207,10 @@ var SOCIAL_LINKS = {whatsapp:'https://wa.me/201012345678', facebook:'https://fac
 
 /* ===== PLANS ===== */
 var PLANS = {
-  free:  {name:'مجاني',  icon:'🆓', products:15, price:0,    promo:0,    color:'#6c757d', cls:'free'},
-  plus:  {name:'بلس',    icon:'⭐', products:50, price:500,  promo:300,  color:'#28a745', cls:'plus'},
-  pro:   {name:'برو',    icon:'💎', products:1120,price:800,  promo:575,  color:'#007bff', cls:'pro'},
-  unl:   {name:'غير محدود',icon:'🚀',products:99999,price:1500,promo:1200,color:'#dc3545', cls:'unl'}
+  free:  {name:'مجاني',  icon:'🆓', products:15, price:0,    promo:0,    color:'#6c757d', cls:'free',  chapters:1},
+  plus:  {name:'بلس',    icon:'⭐', products:50, price:500,  promo:300,  color:'#28a745', cls:'plus',  chapters:1},
+  pro:   {name:'برو',    icon:'💎', products:1120,price:800,  promo:575,  color:'#007bff', cls:'pro',   chapters:3},
+  unl:   {name:'غير محدود',icon:'🚀',products:99999,price:1500,promo:1200,color:'#dc3545', cls:'unl',   chapters:999}
 };
 
 /* ===== DB ===== */
@@ -349,6 +349,7 @@ function rPricing(){
         :'<div class="plan-price">مجاناً</div>')+
       '<ul class="plan-feat">'+
         '<li>حتى '+p.products+' منتج'+(k==='unl'?' (غير محدود)':'')+'</li>'+
+        '<li>حتى '+p.chapters+' باب'+(k==='unl'?' (غير محدود)':'')+(k==='free'?' (باب واحد)':'')+'</li>'+
         '<li>صفحة متجر خاصة بيك</li>'+
         '<li>لوحة تحكم كاملة</li>'+
         '<li>إدارة الطلبات</li>'+
@@ -618,7 +619,14 @@ function rVProducts(vp,planInfo){
 }
 
 function addProd(){
+  var planInfo = PLANS[V.plan||'free'];
+  var existingChapters = [...new Set(DB.products.filter(function(p){return p.vid===V.id}).map(function(p){return p.chapter||'عام'}))];
+  var chapterOpts = existingChapters.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
   sMo('إضافة منتج',
+    '<div class="fg"><label>الباب (التصنيف)</label><select id="pCh" style="width:100%;padding:10px;border:1px solid var(--brd);border-radius:8px;background:var(--bg);color:var(--txt);font-family:inherit">'+
+    '<option value="عام">عام (افتراضي)</option>'+chapterOpts+
+    '<option value="__new__">➕ باب جديد</option></select>'+
+    '<input id="pChNew" style="display:none;margin-top:8px" placeholder="اسم الباب الجديد"></div>'+
     '<div class="fg"><label>اسم المنتج</label><input id="pN" placeholder="اسم المنتج"></div>'+
     '<div class="fg"><label>الوصف</label><textarea id="pD" rows="2" placeholder="وصف المنتج"></textarea></div>'+
     '<div class="fg"><label>السعر (ج.م)</label><input id="pPr" type="number" placeholder="0"></div>'+
@@ -626,10 +634,21 @@ function addProd(){
     '<div class="fg"><label>صورة</label><div class="up-area" onclick="document.getElementById(\'pIm\').click()"><p>📷 اضغط لرفع صورة</p></div>'+
     '<input type="file" id="pIm" accept="image/*" style="display:none" onchange="hPIm(this)"><div id="pImP" class="imgs"></div></div>',
     'saveProd(null)');
+  setTimeout(function(){
+    var sel=document.getElementById('pCh');
+    var inp=document.getElementById('pChNew');
+    if(sel&&inp) sel.onchange=function(){inp.style.display=sel.value==='__new__'?'block':'none'};
+  },100);
 }
 function editProd(id){
   var p=DB.products.find(function(x){return x.id===id});
+  var existingChapters = [...new Set(DB.products.filter(function(x){return x.vid===V.id}).map(function(x){return x.chapter||'عام'}))];
+  var chapterOpts = existingChapters.map(function(c){return '<option value="'+c+'"'+(p.chapter===c?' selected':'')+'>'+c+'</option>'}).join('');
   sMo('تعديل المنتج',
+    '<div class="fg"><label>الباب (التصنيف)</label><select id="pCh" style="width:100%;padding:10px;border:1px solid var(--brd);border-radius:8px;background:var(--bg);color:var(--txt);font-family:inherit">'+
+    '<option value="عام"'+(p.chapter==='عام'||!p.chapter?' selected':'')+'>عام (افتراضي)</option>'+chapterOpts+
+    '<option value="__new__">➕ باب جديد</option></select>'+
+    '<input id="pChNew" style="display:none;margin-top:8px" placeholder="اسم الباب الجديد"></div>'+
     '<div class="fg"><label>اسم المنتج</label><input id="pN" value="'+p.name+'"></div>'+
     '<div class="fg"><label>الوصف</label><textarea id="pD" rows="2">'+p.desc+'</textarea></div>'+
     '<div class="fg"><label>السعر (ج.م)</label><input id="pPr" type="number" value="'+p.price+'"></div>'+
@@ -637,6 +656,11 @@ function editProd(id){
     '<div class="fg"><label>صورة</label><div class="up-area" onclick="document.getElementById(\'pIm\').click()"><p>📷 اضغط لتغيير الصورة</p></div>'+
     '<input type="file" id="pIm" accept="image/*" style="display:none" onchange="hPIm(this)"><div id="pImP" class="imgs">'+(p.img?'<div class="img-it"><img src="'+p.img+'"><button class="img-rm" onclick="window._pImg=\'\';this.parentElement.remove()">✕</button></div>':'')+'</div></div>',
     'saveProd(\''+id+'\')');
+  setTimeout(function(){
+    var sel=document.getElementById('pCh');
+    var inp=document.getElementById('pChNew');
+    if(sel&&inp) sel.onchange=function(){inp.style.display=sel.value==='__new__'?'block':'none'};
+  },100);
 }
 window._pImg='';
 function hPIm(el){
@@ -651,13 +675,29 @@ function hPIm(el){
 function saveProd(id){
   var n=document.getElementById('pN').value.trim(),d=document.getElementById('pD').value.trim(),
       pr=parseInt(document.getElementById('pPr').value)||0,st=parseInt(document.getElementById('pSt').value)||0;
+  var chSel=document.getElementById('pCh');
+  var chNew=document.getElementById('pChNew');
+  var chapter='عام';
+  if(chSel){
+    if(chSel.value==='__new__'&&chNew){
+      chapter=(chNew.value.trim()||'عام');
+      // Check chapter limit
+      var planInfo=PLANS[V.plan||'free'];
+      var existingChapters=[...new Set(DB.products.filter(function(p){return p.vid===V.id}).map(function(p){return p.chapter||'عام'}))];
+      if(!existingChapters.includes(chapter)&&existingChapters.length>=planInfo.chapters){
+        return toast('⚠️ باقتك تسمح بـ '+planInfo.chapters+' باب فقط. ترقى لباقة أعلى.');
+      }
+    } else {
+      chapter=chSel.value;
+    }
+  }
   if(!n)return toast('⚠️ أدخل اسم المنتج');
   if(id){
     var p=DB.products.find(function(x){return x.id===id});
-    Object.assign(p,{name:n,desc:d,price:pr,stock:st,img:window._pImg||p.img});
+    Object.assign(p,{name:n,desc:d,price:pr,stock:st,img:window._pImg||p.img,chapter:chapter});
     toast('✅ تم التحديث');
   }else{
-    DB.products.push({id:'p_'+Date.now(),vid:V.id,name:n,desc:d,price:pr,stock:st,img:window._pImg||''});
+    DB.products.push({id:'p_'+Date.now(),vid:V.id,name:n,desc:d,price:pr,stock:st,img:window._pImg||'',chapter:chapter});
     toast('✅ تم الإضافة');
   }
   window._pImg='';saveDb();clMo();render();
@@ -762,19 +802,32 @@ function rVStore(){
 
 /* ===== PUBLIC STORE ===== */
 var storeViewId=null;
+var storeActiveChapter='all';
 function openStore(idOrSlug){
   var v=DB.vendors.find(function(x){return x.id===idOrSlug||x.slug===idOrSlug});
-  if(v){storeViewId=v.id;cv='store';render();window.scrollTo(0,0)}
+  if(v){storeViewId=v.id;storeActiveChapter='all';cv='store';render();window.scrollTo(0,0)}
   else toast('❌ المتجر غير موجود');
 }
 function rPublicStore(){
   var v=DB.vendors.find(function(x){return x.id===storeViewId});
   if(!v)return '<div class="main"><div class="empty"><div class="empty-ic">❌</div><h4>المتجر غير موجود</h4></div></div>';
   var vp=DB.products.filter(function(p){return p.vid===v.id});
+  var chapters=[...new Set(vp.map(function(p){return p.chapter||'عام'}))];
+  var filtered=storeActiveChapter==='all'?vp:vp.filter(function(p){return (p.chapter||'عام')===storeActiveChapter});
   var h='<div class="main">';
   h+='<button class="back" onclick="go(\'home\')">← العودة</button>';
   h+='<div class="store-header"><div class="store-avatar">'+v.icon+'</div><div class="store-info"><h2>'+v.name+'</h2><p>'+(v.desc||'بهارات وأعشاب طبيعية')+'</p></div></div>';
-  h+='<div class="prod-grid">'+vp.map(function(p){
+  // Chapter tabs
+  if(chapters.length>1){
+    h+='<div class="tabs" style="margin-bottom:20px">';
+    h+='<div class="tab'+(storeActiveChapter==='all'?' on':'')+'" onclick="storeActiveChapter=\'all\';render()">الكل ('+vp.length+')</div>';
+    chapters.forEach(function(ch){
+      var count=vp.filter(function(p){return(p.chapter||'عام')===ch}).length;
+      h+='<div class="tab'+(storeActiveChapter===ch?' on':'')+'" onclick="storeActiveChapter=\''+ch+'\';render()">'+ch+' ('+count+')</div>';
+    });
+    h+='</div>';
+  }
+  h+='<div class="prod-grid">'+filtered.map(function(p){
     var sc=p.stock>10?'stock-ok':p.stock>0?'stock-low':'stock-out';
     var st=p.stock>10?'متوفر':p.stock>0?'كمية محدودة':'نفد';
     return '<div class="prod-card" style="position:relative">'+
